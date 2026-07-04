@@ -16,12 +16,15 @@ function App() {
   const [currentTone, setCurrentTone] = useState('normal');
 
   // TODO [Basic] Inisialisasi layanan deteksi, kamera, dan generator fakta saat aplikasi dimuat
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+
   useEffect(() => {
     const detector = new DetectionService();
     const camera = new CameraService();
     const generator = new RootFactsService();
 
-    actions.setServices({ detector, camera, generator });
+    actionsRef.current.setServices({ detector, camera, generator });
 
     let detectorProgress = 0;
     let generatorProgress = 0;
@@ -29,30 +32,23 @@ function App() {
     const updateStatus = () => {
       const avg = Math.round((detectorProgress + generatorProgress) / 2);
       if (avg < 100) {
-        actions.setModelStatus(`Memuat Model... ${avg}%`);
+        actionsRef.current.setModelStatus(`Memuat Model... ${avg}%`);
       }
     };
 
-    const onDetectorProgress = (p) => {
-      detectorProgress = p;
-      updateStatus();
-    };
-
-    const onGeneratorProgress = (p) => {
-      generatorProgress = p;
-      updateStatus();
-    };
+    const onDetectorProgress = (p) => { detectorProgress = p; updateStatus(); };
+    const onGeneratorProgress = (p) => { generatorProgress = p; updateStatus(); };
 
     Promise.all([
       detector.loadModel(onDetectorProgress),
       generator.loadModel(onGeneratorProgress),
     ])
-      .then(() => actions.setModelStatus('Model AI Siap'))
+      .then(() => actionsRef.current.setModelStatus('Model AI Siap'))
       .catch((err) => {
-        actions.setModelStatus('Gagal Memuat Model');
-        actions.setError(err.message);
+        actionsRef.current.setModelStatus('Gagal Memuat Model');
+        actionsRef.current.setError(err.message);
       });
-  }, []);
+  }, []); // run once on mount
 
   // TODO [Basic] Bersihkan sumber daya saat komponen ditinggalkan
   useEffect(() => {
