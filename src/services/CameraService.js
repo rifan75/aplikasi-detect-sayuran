@@ -1,9 +1,13 @@
+import { getCameraErrorMessage } from '../utils/common.js';
+
 export class CameraService {
   constructor() {
     this.stream = null;
     this.video = null;
     this.canvas = null;
     this.config = null;
+    this.fps = 30;
+    this.cameras = [];
   }
 
   setVideoElement(videoElement) {
@@ -16,20 +20,61 @@ export class CameraService {
 
   // TODO [Basic] Tambahkan konfigurasi kamera untuk mendapatkan daftar perangkat input video
   // TODO [Basic] Dapatkan constraints kamera berdasarkan konfigurasi dan kamera yang dipilih
-  async loadCameras() {}
+  async loadCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    this.cameras = devices.filter((d) => d.kind === 'videoinput');
+    return this.cameras;
+  }
+
+  _getConstraints(selectedCameraId) {
+    if (selectedCameraId && selectedCameraId !== 'default') {
+      return { video: { deviceId: { exact: selectedCameraId } }, audio: false };
+    }
+    return { video: { facingMode: 'environment' }, audio: false };
+  }
 
   // TODO [Basic] Memulai kamera dengan perangkat yang dipilih dan menampilkan pada elemen video
-  async startCamera(selectedCameraId) {}
+  async startCamera(selectedCameraId) {
+    try {
+      if (this.stream) this.stopCamera();
+      const constraints = this._getConstraints(selectedCameraId);
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (this.video) {
+        this.video.srcObject = this.stream;
+        await this.video.play();
+      }
+    } catch (error) {
+      throw new Error(getCameraErrorMessage(error));
+    }
+  }
 
   // TODO [Basic] Menghentikan siaran kamera dan membersihkan sumber daya
-  stopCamera() {}
+  stopCamera() {
+    if (this.stream) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+    }
+    if (this.video) {
+      this.video.srcObject = null;
+    }
+  }
 
   // TODO [Skilled] Implementasikan metode untuk mengatur FPS kamera
-  setFPS(fps) {}
+  setFPS(fps) {
+    this.fps = fps;
+  }
 
   // TODO [Basic] Periksa apakah kamera sedang aktif
-  isActive() {}
+  isActive() {
+    return this.stream !== null && this.stream.active;
+  }
 
   // TODO [Basic] Periksa apakah elemen video siap untuk digunakan
-  isReady() {}
+  isReady() {
+    return (
+      this.video !== null &&
+      this.video.readyState >= 2 &&
+      this.video.videoWidth > 0
+    );
+  }
 }

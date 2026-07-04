@@ -1,4 +1,13 @@
+import { pipeline } from '@huggingface/transformers';
 import { TONE_CONFIG } from '../utils/config.js';
+import { isWebGPUSupported } from '../utils/common.js';
+
+const TONE_PROMPTS = {
+  normal: (name) => `Write one interesting fun fact about the vegetable "${name}" in Indonesian language. Be informative and concise.`,
+  funny: (name) => `Write one hilarious and funny fun fact about the vegetable "${name}" in Indonesian language. Be creative and humorous.`,
+  professional: (name) => `Write one scientific and professional fun fact about the vegetable "${name}" in Indonesian language. Use formal language.`,
+  casual: (name) => `Write one casual and friendly fun fact about the vegetable "${name}" in Indonesian language. Use relaxed, everyday language.`,
+};
 
 export class RootFactsService {
   constructor() {
@@ -12,16 +21,62 @@ export class RootFactsService {
 
   // TODO [Basic] Muat model dan inisialisasi pipeline text2text-generation
   // TODO [Advance] Implementasikan strategi Backend Adaptive
-  async loadModel() {}
+  async loadModel(onProgress) {
+    const device = isWebGPUSupported() ? 'webgpu' : 'webgl';
+    this.currentBackend = device;
+
+    onProgress?.(10);
+
+    this.generator = await pipeline(
+      'text2text-generation',
+      'Xenova/LaMini-Flan-T5-248M',
+      {
+        device,
+        progress_callback: (p) => {
+          if (p.status === 'progress' && p.progress) {
+            onProgress?.(10 + Math.round(p.progress * 0.85));
+          }
+        },
+      },
+    );
+
+    this.isModelLoaded = true;
+    onProgress?.(100);
+  }
 
   // TODO [Advance] Konfigurasi tone fakta yang dihasilkan
-  setTone(tone) {}
+  setTone(tone) {
+    if (TONE_CONFIG.availableTones.some((t) => t.value === tone)) {
+      this.currentTone = tone;
+    }
+  }
 
   // TODO [Basic] Lakukan prediksi pada elemen gambar yang diberikan dan kembalikan hasilnya
   // TODO [Skilled] Konfigurasikan parameter generasi berdasarkan kebutuhan
   // TODO [Advance] Implemenasikan parameter tone untuk mengatur nada fakta yang dihasilkan
-  async generateFacts(vegetableName) {}
+  async generateFacts(vegetableName) {
+    if (!this.isReady() || this.isGenerating) return null;
+
+    this.isGenerating = true;
+    try {
+      const promptFn = TONE_PROMPTS[this.currentTone] ?? TONE_PROMPTS.normal;
+      const prompt = promptFn(vegetableName);
+
+      const result = await this.generator(prompt, {
+        max_new_tokens: 120,
+        temperature: 0.8,
+        top_p: 0.9,
+        do_sample: true,
+      });
+
+      return result?.[0]?.generated_text ?? null;
+    } finally {
+      this.isGenerating = false;
+    }
+  }
 
   // TODO [Basic] Periksa apakah model sudah dimuat dan siap digunakan
-  isReady() {}
+  isReady() {
+    return this.isModelLoaded && this.generator !== null;
+  }
 }
