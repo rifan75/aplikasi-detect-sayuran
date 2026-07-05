@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
   detectionConfidenceThreshold: 70,
   analyzingDelay: 2000,
-  factsGenerationDelay: 2000,
+  factsGenerationDelay: 8000,
   detectionRetryInterval: 100
 };
 

@@ -3,10 +3,10 @@ import { TONE_CONFIG } from '../utils/config.js';
 import { isWebGPUSupported } from '../utils/common.js';
 
 const TONE_PROMPTS = {
-  normal: (name) => `Give one fun fact about ${name} vegetable in Indonesian. Short and interesting.`,
-  funny: (name) => `Give one funny fact about ${name} vegetable in Indonesian. Be humorous.`,
-  professional: (name) => `Give one scientific fact about ${name} vegetable in Indonesian. Be formal.`,
-  casual: (name) => `Give one casual fact about ${name} vegetable in Indonesian. Be friendly.`,
+  normal: (name) => `What is one interesting fact about ${name}?`,
+  funny: (name) => `What is one funny or surprising fact about ${name}?`,
+  professional: (name) => `What is one scientific fact about ${name}?`,
+  casual: (name) => `Tell me something cool about ${name}.`,
 };
 
 export class RootFactsService {
@@ -66,10 +66,10 @@ export class RootFactsService {
       const prompt = promptFn(vegetableName);
 
       const result = await this.generator(prompt, {
-        max_new_tokens: 60,
-        temperature: 0.8,
-        top_p: 0.9,
-        do_sample: true,
+        max_new_tokens: 80,
+        do_sample: false,
+        repetition_penalty: 1.3,
+        no_repeat_ngram_size: 3,
       });
 
       return result?.[0]?.generated_text ?? null;

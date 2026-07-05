@@ -1,6 +1,6 @@
 import { Sparkles, Search, CheckCircle, Lightbulb, Copy, Share2 } from 'lucide-react';
 
-function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }) {
+function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact, onReset }) {
   const isIdle = appState === 'idle';
   const isAnalyzing = appState === 'analyzing';
   const isResult = appState === 'result';
@@ -109,6 +109,26 @@ function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }
           <Share2 size={14} />
           <span>Salin dan bagikan ke teman!</span>
         </div>
+
+        {funFactData && funFactData !== 'error' && (
+          <button
+            onClick={onReset}
+            style={{
+              marginTop: '1rem',
+              width: '100%',
+              padding: '0.625rem',
+              background: '#10b981',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            🔍 Cari Objek Lain
+          </button>
+        )}
       </div>
     );
   };

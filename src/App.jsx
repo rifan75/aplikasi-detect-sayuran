@@ -96,6 +96,18 @@ function App() {
 
                 const fact = await generator.generateFacts(result.className);
                 actions.setFunFactData(fact !== null ? fact : 'error');
+
+                // Wait until user clicks 'cari objek lain' (isProcessingRef released by handleReset)
+                await new Promise((resolve) => {
+                  const check = setInterval(() => {
+                    if (!isProcessingRef.current) { clearInterval(check); resolve(); }
+                  }, 200);
+                });
+                // Re-lock immediately to prevent double trigger
+                isProcessingRef.current = true;
+
+                // Wait before allowing next detection so user can read the fact
+                await createDelay(APP_CONFIG.factsGenerationDelay);
               }
             } finally {
               isProcessingRef.current = false;
@@ -155,6 +167,11 @@ function App() {
     }
   }, [state.funFactData]);
 
+  const handleReset = useCallback(() => {
+    actions.resetResults();
+    isProcessingRef.current = false;
+  }, [actions]);
+
   return (
     <div className="app-container">
       <Header modelStatus={state.modelStatus} />
@@ -176,6 +193,7 @@ function App() {
           funFactData={state.funFactData}
           error={state.error}
           onCopyFact={handleCopyFact}
+          onReset={handleReset}
         />
       </main>
 
