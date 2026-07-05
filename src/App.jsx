@@ -28,16 +28,18 @@ function App() {
 
     let detectorProgress = 0;
     let generatorProgress = 0;
+    let lastReported = 0;
 
     const updateStatus = () => {
       const avg = Math.round((detectorProgress + generatorProgress) / 2);
-      if (avg < 100) {
+      if (avg > lastReported) {
+        lastReported = avg;
         actionsRef.current.setModelStatus(`Memuat Model... ${avg}%`);
       }
     };
 
-    const onDetectorProgress = (p) => { detectorProgress = p; updateStatus(); };
-    const onGeneratorProgress = (p) => { generatorProgress = p; updateStatus(); };
+    const onDetectorProgress = (p) => { detectorProgress = Math.max(detectorProgress, p); updateStatus(); };
+    const onGeneratorProgress = (p) => { generatorProgress = Math.max(generatorProgress, p); updateStatus(); };
 
     Promise.all([
       detector.loadModel(onDetectorProgress),
