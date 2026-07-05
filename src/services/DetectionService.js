@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-webgl';
 import { isWebGPUSupported, validateModelMetadata } from '../utils/common.js';
 
 export class DetectionService {
@@ -25,25 +26,23 @@ export class DetectionService {
       await tf.ready();
     }
 
-    onProgress?.(30);
+    onProgress?.(20);
 
-    const [modelRes, metaRes] = await Promise.all([
-      fetch('/model/model.json'),
-      fetch('/model/metadata.json'),
-    ]);
-
-    onProgress?.(60);
-
+    // Load metadata first
+    const metaRes = await fetch('/model/metadata.json');
     const metadata = await metaRes.json();
     if (!validateModelMetadata(metadata)) throw new Error('Metadata model tidak valid');
     this.labels = metadata.labels;
     this.config = metadata;
 
-    onProgress?.(80);
+    onProgress?.(50);
 
-    const modelJson = await modelRes.json();
-    this.model = await tf.loadLayersModel(tf.io.fromMemory(modelJson));
+    // Use URL-based loader so TF.js fetches weights.bin automatically
+    this.model = await tf.loadLayersModel('/model/model.json');
 
+    onProgress?.(90);
+
+    // Warm-up run
     tf.tidy(() => {
       const dummy = tf.zeros([1, metadata.imageSize, metadata.imageSize, 3]);
       this.model.predict(dummy);

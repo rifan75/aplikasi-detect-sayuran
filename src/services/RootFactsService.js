@@ -22,7 +22,8 @@ export class RootFactsService {
   // TODO [Basic] Muat model dan inisialisasi pipeline text2text-generation
   // TODO [Advance] Implementasikan strategi Backend Adaptive
   async loadModel(onProgress) {
-    const device = isWebGPUSupported() ? 'webgpu' : 'webgl';
+    // Transformers.js supports 'webgpu' or 'wasm' (not 'webgl')
+    const device = isWebGPUSupported() ? 'webgpu' : 'wasm';
     this.currentBackend = device;
 
     onProgress?.(10);
@@ -33,7 +34,7 @@ export class RootFactsService {
       {
         device,
         progress_callback: (p) => {
-          if (p.status === 'progress' && p.progress) {
+          if (p.status === 'progress' && p.progress != null) {
             onProgress?.(10 + Math.round(p.progress * 0.85));
           }
         },

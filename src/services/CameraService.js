@@ -30,17 +30,27 @@ export class CameraService {
     if (selectedCameraId && selectedCameraId !== 'default') {
       return { video: { deviceId: { exact: selectedCameraId } }, audio: false };
     }
-    return { video: { facingMode: 'environment' }, audio: false };
+    // Use 'environment' on mobile, fall back to true for desktop
+    return { video: { facingMode: { ideal: 'environment' } }, audio: false };
   }
 
   // TODO [Basic] Memulai kamera dengan perangkat yang dipilih dan menampilkan pada elemen video
   async startCamera(selectedCameraId) {
     try {
       if (this.stream) this.stopCamera();
+
       const constraints = this._getConstraints(selectedCameraId);
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+
       if (this.video) {
         this.video.srcObject = this.stream;
+
+        // Wait for video metadata to be loaded before playing
+        await new Promise((resolve, reject) => {
+          this.video.onloadedmetadata = resolve;
+          this.video.onerror = reject;
+        });
+
         await this.video.play();
       }
     } catch (error) {
