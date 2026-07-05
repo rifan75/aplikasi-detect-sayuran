@@ -3,10 +3,10 @@ import { TONE_CONFIG } from '../utils/config.js';
 import { isWebGPUSupported } from '../utils/common.js';
 
 const TONE_PROMPTS = {
-  normal: (name) => `Write one interesting fun fact about the vegetable "${name}" in Indonesian language. Be informative and concise.`,
-  funny: (name) => `Write one hilarious and funny fun fact about the vegetable "${name}" in Indonesian language. Be creative and humorous.`,
-  professional: (name) => `Write one scientific and professional fun fact about the vegetable "${name}" in Indonesian language. Use formal language.`,
-  casual: (name) => `Write one casual and friendly fun fact about the vegetable "${name}" in Indonesian language. Use relaxed, everyday language.`,
+  normal: (name) => `Give one fun fact about ${name} vegetable in Indonesian. Short and interesting.`,
+  funny: (name) => `Give one funny fact about ${name} vegetable in Indonesian. Be humorous.`,
+  professional: (name) => `Give one scientific fact about ${name} vegetable in Indonesian. Be formal.`,
+  casual: (name) => `Give one casual fact about ${name} vegetable in Indonesian. Be friendly.`,
 };
 
 export class RootFactsService {
@@ -28,12 +28,12 @@ export class RootFactsService {
 
     onProgress?.(10);
 
+    // flan-t5-small ~80MB, much lighter than LaMini-Flan-T5-248M ~250MB
     this.generator = await pipeline(
       'text2text-generation',
-      'Xenova/LaMini-Flan-T5-248M',
+      'Xenova/flan-t5-small',
       {
         device,
-        // Use quantized model to reduce memory usage on mobile
         dtype: 'q8',
         progress_callback: (p) => {
           if (p.status === 'progress' && p.progress != null) {
@@ -58,40 +58,21 @@ export class RootFactsService {
   // TODO [Skilled] Konfigurasikan parameter generasi berdasarkan kebutuhan
   // TODO [Advance] Implemenasikan parameter tone untuk mengatur nada fakta yang dihasilkan
   async generateFacts(vegetableName) {
-    if (!this.isReady()) return null;
-
-    // If already generating, wait for it to finish then generate fresh
-    if (this.isGenerating) {
-      await new Promise((resolve) => {
-        const check = setInterval(() => {
-          if (!this.isGenerating) { clearInterval(check); resolve(); }
-        }, 200);
-      });
-    }
+    if (!this.isReady() || this.isGenerating) return null;
 
     this.isGenerating = true;
     try {
       const promptFn = TONE_PROMPTS[this.currentTone] ?? TONE_PROMPTS.normal;
       const prompt = promptFn(vegetableName);
 
-      // Timeout after 30s to prevent infinite loading on slow devices
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 30000)
-      );
-
-      const result = await Promise.race([
-        this.generator(prompt, {
-          max_new_tokens: 120,
-          temperature: 0.8,
-          top_p: 0.9,
-          do_sample: true,
-        }),
-        timeout,
-      ]);
+      const result = await this.generator(prompt, {
+        max_new_tokens: 60,
+        temperature: 0.8,
+        top_p: 0.9,
+        do_sample: true,
+      });
 
       return result?.[0]?.generated_text ?? null;
-    } catch {
-      return null;
     } finally {
       this.isGenerating = false;
     }
