@@ -30,10 +30,10 @@ export class RootFactsService {
 
     this.generator = await pipeline(
       'text2text-generation',
-      'Xenova/flan-t5-base',
+      'Xenova/LaMini-Flan-T5-77M',
       {
         device,
-        dtype: 'fp32',
+        dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress' && p.progress != null && p.file) {
             fileProgress[p.file] = p.progress;

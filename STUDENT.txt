@@ -1,1 +1,1 @@
-APP_URL=https://6a4a39e50bcbb00008c85489--unrivaled-sprinkles-91b9bc.netlify.app
+APP_URL=https://6a4a62d85a29990008f1cb94--unrivaled-sprinkles-91b9bc.netlify.app
