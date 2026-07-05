@@ -84,21 +84,22 @@ function App() {
 
           if (isValidDetection(result)) {
             isProcessing = true;
+            try {
+              actions.setDetectionResult(result);
+              actions.setAppState('analyzing');
 
-            actions.setDetectionResult(result);
-            actions.setAppState('analyzing');
+              await createDelay(APP_CONFIG.analyzingDelay);
 
-            await createDelay(APP_CONFIG.analyzingDelay);
+              if (!isRunningRef.current) return;
 
-            if (!isRunningRef.current) return;
+              actions.setAppState('result');
+              actions.setFunFactData(null);
 
-            actions.setAppState('result');
-            actions.setFunFactData(null);
-
-            const fact = await generator.generateFacts(result.className);
-            actions.setFunFactData(fact ?? 'error');
-
-            isProcessing = false;
+              const fact = await generator.generateFacts(result.className);
+              actions.setFunFactData(fact !== null ? fact : 'error');
+            } finally {
+              isProcessing = false;
+            }
           }
         }
       }

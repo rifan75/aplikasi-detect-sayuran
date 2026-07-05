@@ -58,7 +58,16 @@ export class RootFactsService {
   // TODO [Skilled] Konfigurasikan parameter generasi berdasarkan kebutuhan
   // TODO [Advance] Implemenasikan parameter tone untuk mengatur nada fakta yang dihasilkan
   async generateFacts(vegetableName) {
-    if (!this.isReady() || this.isGenerating) return null;
+    if (!this.isReady()) return null;
+
+    // If already generating, wait for it to finish then generate fresh
+    if (this.isGenerating) {
+      await new Promise((resolve) => {
+        const check = setInterval(() => {
+          if (!this.isGenerating) { clearInterval(check); resolve(); }
+        }, 200);
+      });
+    }
 
     this.isGenerating = true;
     try {
