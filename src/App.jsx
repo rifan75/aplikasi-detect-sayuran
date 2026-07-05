@@ -13,6 +13,7 @@ function App() {
   const { state, actions } = useAppState();
   const detectionCleanupRef = useRef(null);
   const isRunningRef = useRef(false);
+  const isProcessingRef = useRef(false);
   const [currentTone, setCurrentTone] = useState('normal');
 
   // TODO [Basic] Inisialisasi layanan deteksi, kamera, dan generator fakta saat aplikasi dimuat
@@ -68,7 +69,6 @@ function App() {
     isRunningRef.current = true;
     let animFrameId = null;
     let lastFrameTime = 0;
-    let isProcessing = false;
 
     const loop = async (timestamp) => {
       if (!isRunningRef.current) return;
@@ -76,14 +76,14 @@ function App() {
       const fps = camera.fps ?? 30;
       const interval = 1000 / fps;
 
-      if (!isProcessing && timestamp - lastFrameTime >= interval) {
+      if (!isProcessingRef.current && timestamp - lastFrameTime >= interval) {
         lastFrameTime = timestamp;
 
         if (camera.isReady()) {
           const result = await detector.predict(camera.video);
 
           if (isValidDetection(result)) {
-            isProcessing = true;
+            isProcessingRef.current = true;
             try {
               actions.setDetectionResult(result);
               actions.setAppState('analyzing');
@@ -98,7 +98,7 @@ function App() {
                 actions.setFunFactData(fact !== null ? fact : 'error');
               }
             } finally {
-              isProcessing = false;
+              isProcessingRef.current = false;
             }
           }
         }
@@ -111,6 +111,7 @@ function App() {
 
     detectionCleanupRef.current = () => {
       isRunningRef.current = false;
+      isProcessingRef.current = false;
       if (animFrameId) cancelAnimationFrame(animFrameId);
     };
   }, [actions]);
@@ -121,6 +122,7 @@ function App() {
 
     if (state.isRunning) {
       isRunningRef.current = false;
+      isProcessingRef.current = false;
       if (detectionCleanupRef.current) {
         detectionCleanupRef.current();
         detectionCleanupRef.current = null;
