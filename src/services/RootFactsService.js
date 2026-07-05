@@ -33,6 +33,8 @@ export class RootFactsService {
       'Xenova/LaMini-Flan-T5-248M',
       {
         device,
+        // Use quantized model to reduce memory usage on mobile
+        dtype: 'q8',
         progress_callback: (p) => {
           if (p.status === 'progress' && p.progress != null) {
             onProgress?.(10 + Math.round(p.progress * 0.85));

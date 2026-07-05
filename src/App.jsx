@@ -31,7 +31,8 @@ function App() {
     let lastReported = 0;
 
     const updateStatus = () => {
-      const avg = Math.round((detectorProgress + generatorProgress) / 2);
+      // detector covers 0-50%, generator covers 50-100%
+      const avg = Math.round((detectorProgress / 2) + (generatorProgress / 2));
       if (avg > lastReported) {
         lastReported = avg;
         actionsRef.current.setModelStatus(`Memuat Model... ${avg}%`);
@@ -41,10 +42,9 @@ function App() {
     const onDetectorProgress = (p) => { detectorProgress = Math.max(detectorProgress, p); updateStatus(); };
     const onGeneratorProgress = (p) => { generatorProgress = Math.max(generatorProgress, p); updateStatus(); };
 
-    Promise.all([
-      detector.loadModel(onDetectorProgress),
-      generator.loadModel(onGeneratorProgress),
-    ])
+    // Load sequentially to avoid memory spike on mobile
+    detector.loadModel(onDetectorProgress)
+      .then(() => generator.loadModel(onGeneratorProgress))
       .then(() => actionsRef.current.setModelStatus('Model AI Siap'))
       .catch((err) => {
         actionsRef.current.setModelStatus('Gagal Memuat Model');
