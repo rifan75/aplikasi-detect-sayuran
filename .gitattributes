@@ -1,0 +1,5 @@
+# Exclude these from zip export (git archive)
+node_modules/ export-ignore
+dist/ export-ignore
+public/model/weights.bin export-ignore
+public/screenshots/screenshot.png export-ignore
