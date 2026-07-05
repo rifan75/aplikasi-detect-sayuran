@@ -3,10 +3,10 @@ import { TONE_CONFIG } from '../utils/config.js';
 import { isWebGPUSupported } from '../utils/common.js';
 
 const TONE_PROMPTS = {
-  normal: (name) => `What is one interesting fact about ${name}?`,
-  funny: (name) => `What is one funny or surprising fact about ${name}?`,
-  professional: (name) => `What is one scientific fact about ${name}?`,
-  casual: (name) => `Tell me something cool about ${name}.`,
+  normal: (name) => `Give one specific and interesting fact about the vegetable ${name}.`,
+  funny: (name) => `Give one funny or surprising fact about the vegetable ${name}.`,
+  professional: (name) => `Give one scientific or nutritional fact about the vegetable ${name}.`,
+  casual: (name) => `Share one cool or unexpected fact about the vegetable ${name} in a friendly way.`,
 };
 
 export class RootFactsService {
@@ -21,23 +21,36 @@ export class RootFactsService {
 
   // TODO [Basic] Muat model dan inisialisasi pipeline text2text-generation
   // TODO [Advance] Implementasikan strategi Backend Adaptive
-  async loadModel(onProgress) {
-    // Transformers.js supports 'webgpu' or 'wasm' (not 'webgl')
+  async loadModel(onProgress, onStatusText) {
     const device = isWebGPUSupported() ? 'webgpu' : 'wasm';
     this.currentBackend = device;
 
-    onProgress?.(10);
+    // Track per-file progress: encoder_model and decoder_model
+    const fileProgress = {};
 
-    // flan-t5-small ~80MB, much lighter than LaMini-Flan-T5-248M ~250MB
     this.generator = await pipeline(
       'text2text-generation',
-      'Xenova/flan-t5-small',
+      'Xenova/flan-t5-base',
       {
         device,
-        dtype: 'q8',
+        dtype: 'fp32',
         progress_callback: (p) => {
-          if (p.status === 'progress' && p.progress != null) {
-            onProgress?.(10 + Math.round(p.progress * 0.85));
+          if (p.status === 'progress' && p.progress != null && p.file) {
+            fileProgress[p.file] = p.progress;
+
+            const encoderPct = Math.round(fileProgress[Object.keys(fileProgress).find(k => k.includes('encoder')) ?? ''] ?? 0);
+            const decoderPct = Math.round(fileProgress[Object.keys(fileProgress).find(k => k.includes('decoder')) ?? ''] ?? 0);
+
+            const parts = [];
+            if (encoderPct > 0) parts.push(`Encoder ${encoderPct}%`);
+            if (decoderPct > 0) parts.push(`Decoder ${decoderPct}%`);
+            if (parts.length > 0) onStatusText?.(`Mengunduh ${parts.join(' | ')}`);
+
+            const values = Object.values(fileProgress);
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+            onProgress?.(Math.round(avg));
+          } else if (p.status === 'done' && p.file) {
+            fileProgress[p.file] = 100;
           }
         },
       },
@@ -68,7 +81,7 @@ export class RootFactsService {
       const result = await this.generator(prompt, {
         max_new_tokens: 80,
         do_sample: false,
-        repetition_penalty: 1.3,
+        repetition_penalty: 1.5,
         no_repeat_ngram_size: 3,
       });
 

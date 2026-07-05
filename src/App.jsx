@@ -42,10 +42,11 @@ function App() {
 
     const onDetectorProgress = (p) => { detectorProgress = Math.max(detectorProgress, p); updateStatus(); };
     const onGeneratorProgress = (p) => { generatorProgress = Math.max(generatorProgress, p); updateStatus(); };
+    const onGeneratorStatusText = (text) => actionsRef.current.setModelStatus(text);
 
     // Load sequentially to avoid memory spike on mobile
     detector.loadModel(onDetectorProgress)
-      .then(() => generator.loadModel(onGeneratorProgress))
+      .then(() => generator.loadModel(onGeneratorProgress, onGeneratorStatusText))
       .then(() => actionsRef.current.setModelStatus('Model AI Siap'))
       .catch((err) => {
         actionsRef.current.setModelStatus('Gagal Memuat Model');
