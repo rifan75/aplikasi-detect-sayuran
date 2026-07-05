@@ -90,13 +90,13 @@ function App() {
 
               await createDelay(APP_CONFIG.analyzingDelay);
 
-              if (!isRunningRef.current) return;
+              if (isRunningRef.current) {
+                actions.setAppState('result');
+                actions.setFunFactData(null);
 
-              actions.setAppState('result');
-              actions.setFunFactData(null);
-
-              const fact = await generator.generateFacts(result.className);
-              actions.setFunFactData(fact !== null ? fact : 'error');
+                const fact = await generator.generateFacts(result.className);
+                actions.setFunFactData(fact !== null ? fact : 'error');
+              }
             } finally {
               isProcessing = false;
             }

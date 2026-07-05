@@ -74,14 +74,24 @@ export class RootFactsService {
       const promptFn = TONE_PROMPTS[this.currentTone] ?? TONE_PROMPTS.normal;
       const prompt = promptFn(vegetableName);
 
-      const result = await this.generator(prompt, {
-        max_new_tokens: 120,
-        temperature: 0.8,
-        top_p: 0.9,
-        do_sample: true,
-      });
+      // Timeout after 30s to prevent infinite loading on slow devices
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 30000)
+      );
+
+      const result = await Promise.race([
+        this.generator(prompt, {
+          max_new_tokens: 120,
+          temperature: 0.8,
+          top_p: 0.9,
+          do_sample: true,
+        }),
+        timeout,
+      ]);
 
       return result?.[0]?.generated_text ?? null;
+    } catch {
+      return null;
     } finally {
       this.isGenerating = false;
     }
