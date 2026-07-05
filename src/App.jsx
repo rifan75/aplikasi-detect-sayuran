@@ -68,6 +68,7 @@ function App() {
     isRunningRef.current = true;
     let animFrameId = null;
     let lastFrameTime = 0;
+    let isProcessing = false;
 
     const loop = async (timestamp) => {
       if (!isRunningRef.current) return;
@@ -75,13 +76,15 @@ function App() {
       const fps = camera.fps ?? 30;
       const interval = 1000 / fps;
 
-      if (timestamp - lastFrameTime >= interval) {
+      if (!isProcessing && timestamp - lastFrameTime >= interval) {
         lastFrameTime = timestamp;
 
         if (camera.isReady()) {
           const result = await detector.predict(camera.video);
 
           if (isValidDetection(result)) {
+            isProcessing = true;
+
             actions.setDetectionResult(result);
             actions.setAppState('analyzing');
 
@@ -94,6 +97,8 @@ function App() {
 
             const fact = await generator.generateFacts(result.className);
             actions.setFunFactData(fact ?? 'error');
+
+            isProcessing = false;
           }
         }
       }
